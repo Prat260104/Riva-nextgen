@@ -1,206 +1,221 @@
+// AudioSphere.js - WORKING VERSION - No Ring + Subtle Expansion
 import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 
-const AudioSphere = ({ isSpeaking, audioElement }) => {
+const AudioSphere = ({ audioLevel, isSpeaking }) => {
   const containerRef = useRef(null);
-  const sceneRef = useRef(null);
-  const sphereRef = useRef(null);
-  const analyserRef = useRef(null);
-  const dataArrayRef = useRef(null);
-  const rendererRef = useRef(null);
+  const sceneDataRef = useRef(null);
   const animationIdRef = useRef(null);
 
+  // ✨ Initialize scene ONLY ONCE
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || sceneDataRef.current) return;
 
-    // Scene setup
+    console.log('🌐 AudioSphere: Initializing...');
+
     const scene = new THREE.Scene();
-    sceneRef.current = scene;
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 4;
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      containerRef.current.clientWidth / containerRef.current.clientHeight,
-      0.1,
-      1000
-    );
-    camera.position.z = 3;
-
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: true, 
-      alpha: true 
-    });
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 1);
     containerRef.current.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
 
-    // Create golden wireframe sphere
-    const geometry = new THREE.IcosahedronGeometry(1, 4);
+    // Main sphere
+    const geometry = new THREE.IcosahedronGeometry(1.2, 6);
     const material = new THREE.MeshBasicMaterial({
-      color: 0xFFD700,
+      color: 0xffffff,
       wireframe: true,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.85
     });
+    
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
-    sphereRef.current = sphere;
 
-    // Add inner glow sphere
-    const glowGeometry = new THREE.SphereGeometry(0.95, 32, 32);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0xFFD700,
+    // Store original positions
+    const originalPositions = geometry.attributes.position.array.slice();
+
+    // Inner glow
+    const glowGeometry = new THREE.SphereGeometry(1.18, 32, 32);
+    const glowMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        glowColor: { value: new THREE.Color(0xffffff) },
+        intensity: { value: 0.2 }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 glowColor;
+        uniform float intensity;
+        varying vec3 vNormal;
+        void main() {
+          float brighten = pow(0.5 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5);
+          gl_FragColor = vec4(glowColor, brighten * intensity);
+        }
+      `,
+      side: THREE.BackSide,
       transparent: true,
-      opacity: 0.1
+      blending: THREE.AdditiveBlending
     });
+    
     const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
     sphere.add(glowSphere);
 
-    // Particles around sphere
-    const particlesGeometry = new THREE.BufferGeometry();
-    const particlesCount = 1000;
-    const posArray = new Float32Array(particlesCount * 3);
+    // Lighting
+    const pointLight1 = new THREE.PointLight(0xffffff, 1.5, 10);
+    pointLight1.position.set(3, 3, 3);
+    scene.add(pointLight1);
 
-    for (let i = 0; i < particlesCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 5;
-    }
+    const pointLight2 = new THREE.PointLight(0xcccccc, 0.8, 10);
+    pointLight2.position.set(-3, -3, 3);
+    scene.add(pointLight2);
 
-    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    scene.add(ambientLight);
 
-    const particlesMaterial = new THREE.PointsMaterial({
-      size: 0.005,
-      color: 0xFFD700,
-      transparent: true,
-      opacity: 0.4
-    });
-
-    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-    scene.add(particlesMesh);
-
-    // Audio context setup
-    let audioContext = null;
-    let analyser = null;
-    let dataArray = null;
-
-    if (audioElement) {
-      try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioContext.createMediaElementSource(audioElement);
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        
-        const bufferLength = analyser.frequencyBinCount;
-        dataArray = new Uint8Array(bufferLength);
-        
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        
-        analyserRef.current = analyser;
-        dataArrayRef.current = dataArray;
-      } catch (error) {
-        console.log('Audio context setup skipped:', error);
-      }
-    }
-
-    // Animation loop
-    const animate = () => {
-      animationIdRef.current = requestAnimationFrame(animate);
-
-      let scale = 1;
-      let rotationSpeed = 0.001;
-
-      // Get audio data if available
-      if (isSpeaking && analyserRef.current && dataArrayRef.current) {
-        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-        
-        // Calculate average frequency
-        const average = dataArrayRef.current.reduce((a, b) => a + b, 0) / dataArrayRef.current.length;
-        
-        // Map frequency to scale (1.0 to 1.5)
-        scale = 1 + (average / 255) * 0.5;
-        rotationSpeed = 0.005 + (average / 255) * 0.01;
-
-        // Deform vertices based on frequency
-        const positionAttribute = sphere.geometry.attributes.position;
-        const vertex = new THREE.Vector3();
-
-        for (let i = 0; i < positionAttribute.count; i++) {
-          vertex.fromBufferAttribute(positionAttribute, i);
-          
-          const frequencyIndex = Math.floor((i / positionAttribute.count) * dataArrayRef.current.length);
-          const frequency = dataArrayRef.current[frequencyIndex] / 255;
-          
-          vertex.normalize();
-          const distance = 1 + frequency * 0.3;
-          vertex.multiplyScalar(distance);
-          
-          positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z);
-        }
-        
-        positionAttribute.needsUpdate = true;
-      } else {
-        // Idle animation when not speaking
-        scale = 1 + Math.sin(Date.now() * 0.001) * 0.1;
-      }
-
-      // Apply transformations
-      sphere.scale.set(scale, scale, scale);
-      sphere.rotation.x += rotationSpeed;
-      sphere.rotation.y += rotationSpeed * 0.7;
-
-      // Rotate particles
-      particlesMesh.rotation.y += 0.0005;
-
-      renderer.render(scene, camera);
+    // Store everything
+    sceneDataRef.current = {
+      scene,
+      camera,
+      renderer,
+      sphere,
+      geometry,
+      glowMaterial,
+      originalPositions,
+      currentScale: 1
     };
 
-    animate();
-
-    // Handle window resize
     const handleResize = () => {
-      if (!containerRef.current) return;
-      
-      camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+      renderer.setSize(window.innerWidth, window.innerHeight);
     };
 
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
     return () => {
+      console.log('🌐 AudioSphere: Cleaning up...');
       window.removeEventListener('resize', handleResize);
-      
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
       }
-      
-      if (rendererRef.current && containerRef.current) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
+      if (renderer && containerRef.current && renderer.domElement) {
+        containerRef.current.removeChild(renderer.domElement);
       }
-      
-      if (audioContext) {
-        audioContext.close();
-      }
-      
       geometry.dispose();
       material.dispose();
       glowGeometry.dispose();
       glowMaterial.dispose();
-      particlesGeometry.dispose();
-      particlesMaterial.dispose();
+      renderer.dispose();
+      sceneDataRef.current = null;
     };
-  }, [audioElement]);
+  }, []);
 
-  // Update speaking state
+  // ✨ ANIMATION LOOP - Subtle expansion
   useEffect(() => {
-    if (sphereRef.current) {
-      const material = sphereRef.current.material;
-      material.opacity = isSpeaking ? 1 : 0.6;
-    }
-  }, [isSpeaking]);
+    if (!sceneDataRef.current) return;
+
+    const data = sceneDataRef.current;
+    let time = 0;
+
+    const animate = () => {
+      animationIdRef.current = requestAnimationFrame(animate);
+      time += 0.01;
+
+      let targetScale = 1;
+
+      if (isSpeaking && audioLevel > 0) {
+        // 🔽 SUBTLE EXPANSION (30% max)
+        targetScale = 1 + (audioLevel * 0.3);
+        
+        // Rotation
+        const rotationSpeed = 0.005 + audioLevel * 0.015;
+        data.sphere.rotation.x += rotationSpeed;
+        data.sphere.rotation.y += rotationSpeed * 1.3;
+
+        // Vertex displacement - reduced amplitude
+        const positionAttribute = data.geometry.attributes.position;
+        const vertex = new THREE.Vector3();
+
+        for (let i = 0; i < positionAttribute.count; i++) {
+          const i3 = i * 3;
+          vertex.set(
+            data.originalPositions[i3],
+            data.originalPositions[i3 + 1],
+            data.originalPositions[i3 + 2]
+          );
+          
+          // Reduced wave amplitude
+          const wave1 = Math.sin(time * 3 + vertex.x * 5) * audioLevel * 0.12;
+          const wave2 = Math.cos(time * 2 + vertex.y * 4) * audioLevel * 0.10;
+          const wave3 = Math.sin(time * 4 + vertex.z * 3) * audioLevel * 0.08;
+          
+          vertex.normalize();
+          const distance = 1 + audioLevel * 0.25 + wave1 + wave2 + wave3;
+          vertex.multiplyScalar(distance);
+          
+          positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z);
+        }
+        positionAttribute.needsUpdate = true;
+
+        // Glow intensity
+        data.glowMaterial.uniforms.intensity.value = 0.2 + audioLevel * 0.6;
+
+      } else {
+        // IDLE BREATHING - subtle
+        const breathe = Math.sin(time * 0.6) * 0.05;
+        targetScale = 1 + breathe;
+        
+        data.sphere.rotation.x += 0.002;
+        data.sphere.rotation.y += 0.003;
+
+        const positionAttribute = data.geometry.attributes.position;
+        const vertex = new THREE.Vector3();
+
+        for (let i = 0; i < positionAttribute.count; i++) {
+          const i3 = i * 3;
+          vertex.set(
+            data.originalPositions[i3],
+            data.originalPositions[i3 + 1],
+            data.originalPositions[i3 + 2]
+          );
+          
+          const gentleWave = Math.sin(time * 0.5 + vertex.x * 2) * 0.02;
+          
+          vertex.normalize();
+          vertex.multiplyScalar(1 + breathe + gentleWave);
+          
+          positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z);
+        }
+        positionAttribute.needsUpdate = true;
+
+        data.glowMaterial.uniforms.intensity.value = 0.2;
+      }
+
+      // SMOOTH SCALE TRANSITION
+   data.currentScale += (targetScale - data.currentScale) * 0.35; // Smoother, more responsive
+
+      data.sphere.scale.set(data.currentScale, data.currentScale, data.currentScale);
+
+      data.renderer.render(data.scene, data.camera);
+    };
+
+    animate();
+
+    return () => {
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+      }
+    };
+  }, [audioLevel, isSpeaking]);
 
   return (
     <div 
@@ -209,12 +224,15 @@ const AudioSphere = ({ isSpeaking, audioElement }) => {
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: -1,
-        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)'
+        width: '100vw',
+        height: '100vh',
+        zIndex: 0,
+        background: '#000000',
+        overflow: 'hidden'
       }}
     />
   );
 };
-export default AudioSphere;
+
+export default React.memo(AudioSphere);
+
