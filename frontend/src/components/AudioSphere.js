@@ -107,8 +107,9 @@ const AudioSphere = ({ audioLevel, isSpeaking }) => {
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
       }
-      if (renderer && containerRef.current && renderer.domElement) {
-        containerRef.current.removeChild(renderer.domElement);
+      const container = containerRef.current;
+      if (renderer && container && renderer.domElement) {
+        container.removeChild(renderer.domElement);
       }
       geometry.dispose();
       material.dispose();

@@ -5,7 +5,11 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai');
+const multer = require('multer');
 require('dotenv').config();
+
+const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 const PORT = 5000;
@@ -19,14 +23,19 @@ app.use((req, res, next) => {
 });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const USE_WHISPER = process.env.USE_WHISPER === 'true';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
-const ELEVENLABS_MODEL_ID = 'eleven_multilingual_v2';
+const ELEVENLABS_MODEL_ID = 'eleven_turbo_v2';
+const USE_ELEVENLABS = process.env.USE_ELEVENLABS === 'true' && ELEVENLABS_API_KEY;
 
 console.log('🔑 Gemini API Key loaded:', process.env.GEMINI_API_KEY ? '✅' : '❌');
+console.log('🔑 OpenAI API Key loaded:', process.env.OPENAI_API_KEY ? '✅' : '❌');
 console.log('🔑 ElevenLabs API Key loaded:', ELEVENLABS_API_KEY ? '✅' : '❌');
 console.log('🎙️ ElevenLabs Voice ID:', ELEVENLABS_VOICE_ID);
+console.log('🎤 STT: ' + (USE_WHISPER ? 'OpenAI Whisper' : 'Browser Speech API'));
 
 let conversationHistory = [];
 
@@ -172,10 +181,10 @@ app.post('/api/chat', async (req, res) => {
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.0-flash-exp',
       generationConfig: {
-        temperature: 0.9,
-        topP: 1,
+        temperature: 0.7,
+        topP: 0.95,
         topK: 40,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 512,
       },
     });
 
@@ -185,27 +194,34 @@ app.post('/api/chat', async (req, res) => {
           role: 'user',
           parts: [{ text: `You are ELARA, a female AI assistant for the NextGen Supercomputing Club at KIET Group of Institutions.
 
-**YOUR PRIMARY ROLE:**
-You are a general-purpose AI assistant (like ChatGPT) who can answer ANY question about ANY topic - science, technology, celebrities, history, current events, coding, math, entertainment, sports, etc.
+You are a general-purpose AI assistant who can answer ANY question about ANY topic - science, technology, celebrities, history, current events, coding, math, entertainment, sports, etc.
 
-**YOUR SPECIAL EXPERTISE:**
-You ALSO have specialized knowledge about the NextGen Supercomputing Club. When users ask club-related questions, you can provide detailed answers using this knowledge base:
+You ALSO have specialized knowledge about the NextGen Supercomputing Club:
 
 ${CLUB_KNOWLEDGE}
 
-**HOW TO RESPOND:**
-- For GENERAL questions (like "Who is Salman Khan?", "What is Python?", "Explain quantum mechanics"): Answer normally using your vast general knowledge
-- For CLUB questions (like "Who are the mentors?", "What does the club do?"): Use the knowledge base above
-- Be friendly, conversational, and helpful
-- Keep responses concise unless asked for details
-- Use markdown formatting and occasional emojis
-- You can discuss ANY topic - technology, entertainment, science, culture, etc.
+**RESPONSE RULES:**
 
-**IMPORTANT:** Don't limit yourself to only club topics. You're a full-featured AI assistant who happens to know a lot about the NextGen Supercomputing Club!` }]
+1. **ONLY FOR CLUB INTRODUCTION** ("tell me about the club", "introduce the club", "what is NextGen club"):
+   - Give a DETAILED, comprehensive introduction
+   - Include mission, vision, activities, mentors, resources
+   - DO NOT mention student member names unless specifically asked
+
+2. **ALL OTHER QUESTIONS** (everything else):
+   - Keep responses SHORT and CRISP (2-4 sentences maximum)
+   - Be direct and to the point
+   - No long explanations unless asked "explain in detail"
+
+**EXAMPLES:**
+- "Who are the mentors?" → "The club mentors are Dr. Gaurav Srivastava, Dr. Richa Singh, and Dr. Bikki Kumar, guided by Dr. Rekha Kashyap."
+- "What is Python?" → "Python is a high-level programming language known for its simplicity and versatility, widely used in web development, data science, and AI."
+- "Who is the president?" → "Shreya Jain is the President of NextGen Supercomputing Club."
+
+Be friendly, conversational, and concise.` }]
         },
         {
           role: 'model',
-          parts: [{ text: 'Understood! I am ELARA, your AI assistant. I can help you with ANY question - whether it\'s about celebrities, technology, science, coding, entertainment, or anything else! I also have specialized knowledge about the NextGen Supercomputing Club at KIET, including our team, mentors, and the NVIDIA DGX A100 supercomputer. Ask me anything! 🤖✨' }]
+          parts: [{ text: 'Understood! I am ELARA. Only club introductions will be detailed. All other responses will be short and crisp (2-4 sentences). Ready!' }]
         },
         ...conversationHistory.map(msg => ({
           role: msg.role === 'assistant' ? 'model' : 'user',
@@ -253,8 +269,8 @@ app.post('/api/tts', async (req, res) => {
     return res.status(400).json({ error: 'Text is required' });
   }
 
-  if (!ELEVENLABS_API_KEY) {
-    return res.status(500).json({ error: 'ElevenLabs API key not configured' });
+  if (!USE_ELEVENLABS || !ELEVENLABS_API_KEY) {
+    return res.status(500).json({ error: 'ElevenLabs not configured' });
   }
 
   try {
@@ -286,12 +302,12 @@ app.post('/api/tts', async (req, res) => {
         'xi-api-key': ELEVENLABS_API_KEY
       },
       data: {
-        text: cleanText,
+        text: cleanText.replace(/([.!?])\s+/g, '$1. '),
         model_id: ELEVENLABS_MODEL_ID,
         voice_settings: {
           stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.0,
+          similarity_boost: 0.85,
+          style: 0.3,
           use_speaker_boost: true
         }
       },
@@ -312,6 +328,36 @@ app.post('/api/tts', async (req, res) => {
   }
 });
 
+app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
+  if (!USE_WHISPER) {
+    return res.status(400).json({ error: 'Whisper not enabled' });
+  }
+
+  try {
+    const audioFile = req.file;
+    if (!audioFile) {
+      return res.status(400).json({ error: 'No audio file provided' });
+    }
+
+    console.log('🎤 Transcribing with OpenAI Whisper...');
+
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(audioFile.path),
+      model: 'whisper-1',
+      language: 'en'
+    });
+
+    fs.unlinkSync(audioFile.path);
+
+    console.log('✅ Transcription:', transcription.text);
+    res.json({ transcript: transcription.text });
+
+  } catch (error) {
+    console.error('❌ Whisper Error:', error.message);
+    res.status(500).json({ error: 'Transcription failed' });
+  }
+});
+
 app.post('/api/clear', (req, res) => {
   console.log('🗑️ Clearing conversation');
   conversationHistory = [];
@@ -326,7 +372,8 @@ app.get('/api/health', (req, res) => {
       generalChat: true,
       clubKnowledge: true,
       inaugurationTrigger: true,
-      voiceSupport: true
+      voiceSupport: true,
+      elevenLabsVoice: USE_ELEVENLABS
     }
   });
 });
@@ -339,6 +386,6 @@ app.listen(PORT, () => {
   console.log(`🤖 AI: Gemini 2.0 Flash (General Purpose)`);
   console.log(`🎓 Club Knowledge: Loaded ✅`);
   console.log(`🌍 Can answer ANY general question ✅`);
-
+  console.log(`🎤 Voice: ${USE_ELEVENLABS ? 'ElevenLabs (Cloned) ✅' : 'Browser TTS'}`);
   console.log(`${'='.repeat(60)}\n`);
 });

@@ -56,6 +56,27 @@ body {
   animation: slideDown 0.3s ease-out;
 }
 
+.continuous-banner {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(20px);
+  color: #ffffff;
+  padding: 15px 30px;
+  border-radius: 15px;
+  z-index: 1000;
+  font-weight: 600;
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.8),
+    0 0 30px rgba(255, 255, 255, 0.2);
+  animation: pulse 1.5s infinite;
+}
+
 .interim-banner {
   position: fixed;
   top: 80px;
@@ -576,6 +597,24 @@ body {
   50% {
     transform: scale(1.15);
   }
+}
+
+/* Continuous Mode Button */
+.control-btn.continuous-btn.active {
+  background: rgba(50, 50, 50, 0.95);
+  border-color: rgba(255, 255, 255, 0.9);
+  animation: pulseGlow 1.5s infinite;
+}
+
+.control-btn.continuous-btn.active svg {
+  animation: iconPulse 1.5s infinite;
+}
+
+.control-btn.continuous-btn.active svg path,
+.control-btn.continuous-btn.active svg line,
+.control-btn.continuous-btn.active svg polyline,
+.control-btn.continuous-btn.active svg circle {
+  stroke: #ffffff;
 }
 
 /* ========== HORIZONTAL INPUT BOX ========== */
