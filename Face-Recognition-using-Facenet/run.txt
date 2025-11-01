@@ -1,0 +1,29 @@
+cd /Users/prateekrai/Desktop/FaceRecognition
+
+# (Optional) create and activate venv
+python3 -m venv venv311_new
+source venv311_new/bin/activate
+
+# install requirements
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# OR using explicit venv pip
+/Users/prateekrai/Desktop/FaceRecognition/venv311_new/bin/pip install --upgrade pip
+/Users/prateekrai/Desktop/FaceRecognition/venv311_new/bin/pip install -r /Users/prateekrai/Desktop/FaceRecognition/requirements.txt
+
+# quick checks
+/Users/prateekrai/Desktop/FaceRecognition/venv311_new/bin/python -V
+/Users/prateekrai/Desktop/FaceRecognition/venv311_new/bin/python -c "import torch; print('PyTorch', torch.__version__); print('MPS available', torch.backends.mps.is_available())"
+
+# enroll images
+/Users/prateekrai/Desktop/FaceRecognition/venv311_new/bin/python /Users/prateekrai/Desktop/FaceRecognition/auto_enrollment.py
+
+# recognition (test run, 5 frames)
+FR_TEST=1 FR_MAX_FRAMES=5 /Users/prateekrai/Desktop/FaceRecognition/venv311_new/bin/python /Users/prateekrai/Desktop/FaceRecognition/recognition.py
+
+# recognition (live)
+/Users/prateekrai/Desktop/FaceRecognition/venv311_new/bin/python /Users/prateekrai/Desktop/FaceRecognition/recognition.py
+
+# inspect db
+/Users/prateekrai/Desktop/FaceRecognition/venv311_new/bin/python -c "import pickle; print(list(pickle.load(open('face_db.pkl','rb')).keys()))"

@@ -1,0 +1,7 @@
+facenet-pytorch
+torch
+torchvision
+opencv-python-headless
+numpy
+scikit-learn
+pillow

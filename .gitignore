@@ -1,0 +1,78 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pth
+*.pt
+*.ckpt
+venv/
+env/
+.venv/
+*.egg-info/
+
+# Build outputs
+build/
+dist/
+/coverage
+
+# Logs
+*.log
+
+# Uploads
+uploads/
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary
+*.tmp
+*.temp
+temp/
+
+# Face Recognition
+face_db.pkl
+face_db_lite.pkl
+enroll_images/
+!enroll_images/.gitkeep
+
+# Confidential - API Keys & Secrets
+backend/.env
+frontend/.env
+**/uploads/
+**/*.pkl
+
+# Python virtual environment
+Face-Recognition-using-Facenet/env/
+
+# Jupyter
+.ipynb_checkpoints
+
+# TypeScript
+*.tsbuildinfo

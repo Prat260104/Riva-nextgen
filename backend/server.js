@@ -7,6 +7,7 @@ const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const OpenAI = require('openai');
 const multer = require('multer');
+const { spawn } = require('child_process');
 require('dotenv').config();
 
 const upload = multer({ dest: 'uploads/' });
@@ -171,7 +172,7 @@ app.post('/api/chat', async (req, res) => {
   console.log('📨 Chat request received');
   
   try {
-    const { message } = req.body;
+    const { message, avatar } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
@@ -210,11 +211,33 @@ app.post('/api/chat', async (req, res) => {
       },
     });
 
+    // Avatar-specific personalities
+    const avatarPersonalities = {
+      'Alex': {
+        name: 'Alex',
+        personality: 'You are Alex, a friendly and enthusiastic male AI assistant. You are energetic, helpful, and love explaining technical concepts in simple terms. You use casual language and often use tech analogies.'
+      },
+      'Sia': {
+        name: 'Sia',
+        personality: 'You are Sia, a professional and intelligent female AI assistant. You are precise, articulate, and focus on delivering accurate information. You maintain a warm but professional tone.'
+      },
+      'Noah': {
+        name: 'Noah',
+        personality: 'You are Noah, a calm and thoughtful male AI assistant. You are patient, analytical, and enjoy deep technical discussions. You speak in a measured, thoughtful manner.'
+      }
+    };
+
+    const currentAvatar = avatarPersonalities[avatar] || avatarPersonalities['Sia'];
+    const assistantName = currentAvatar.name;
+    const personalityTrait = currentAvatar.personality;
+
     const chat = model.startChat({
       history: [
         {
           role: 'user',
-          parts: [{ text: `You are RIVA, a female AI assistant for the NextGen Supercomputing Club at KIET Group of Institutions.
+          parts: [{ text: `${personalityTrait}
+
+You are an AI assistant for the NextGen Supercomputing Club at KIET Group of Institutions.
 
 You are a general-purpose AI assistant who can answer ANY question about ANY topic - science, technology, celebrities, history, current events, coding, math, entertainment, sports, etc.
 
@@ -243,7 +266,7 @@ Be friendly, conversational, and concise.` }]
         },
         {
           role: 'model',
-          parts: [{ text: 'Understood! I am RIVA. Only club introductions will be detailed. All other responses will be short and crisp (2-4 sentences). Ready!' }]
+          parts: [{ text: `Understood! I am ${assistantName}. Only club introductions will be detailed. All other responses will be short and crisp (2-4 sentences). Ready!` }]
         },
         ...conversationHistory.map(msg => ({
           role: msg.role === 'assistant' ? 'model' : 'user',
@@ -386,6 +409,70 @@ app.post('/api/clear', (req, res) => {
   res.json({ success: true });
 });
 
+// ===============================================
+// 🎭 FACE RECOGNITION ENDPOINT
+// ===============================================
+app.post('/api/recognize-face', async (req, res) => {
+  try {
+    const { image, useLite } = req.body;
+    
+    if (!image) {
+      return res.status(400).json({ error: 'Image data required' });
+    }
+
+    console.log('👤 Face recognition request received (mode:', useLite ? 'LITE' : 'FULL', ')');
+
+    // Use lite version for low-spec machines
+    const scriptName = useLite ? 'face_recognition_cli_lite.py' : 'face_recognition_cli.py';
+    
+    // Call Python face recognition service
+    const python = spawn('python3', [
+      path.join(__dirname, scriptName),
+      '--image', image
+    ]);
+
+    let result = '';
+    let error = '';
+
+    python.stdout.on('data', (data) => {
+      result += data.toString();
+    });
+
+    python.stderr.on('data', (data) => {
+      error += data.toString();
+    });
+
+    python.on('close', (code) => {
+      if (code !== 0) {
+        console.error('❌ Face recognition error:', error);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Face recognition failed' 
+        });
+      }
+
+      try {
+        const recognition = JSON.parse(result);
+        console.log('✅ Face recognized:', recognition);
+        res.json(recognition);
+      } catch (e) {
+        console.error('❌ Parse error:', e);
+        res.status(500).json({ 
+          success: false, 
+          message: 'Invalid response from face recognition' 
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Face recognition error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -409,5 +496,6 @@ app.listen(PORT, () => {
   console.log(`🎓 Club Knowledge: Loaded ✅`);
   console.log(`🌍 Can answer ANY general question ✅`);
   console.log(`🎤 Voice: ${USE_ELEVENLABS ? 'ElevenLabs (Cloned) ✅' : 'Browser TTS'}`);
+  console.log(`👤 Face Recognition: Available ✅`);
   console.log(`${'='.repeat(60)}\n`);
 });
