@@ -185,7 +185,8 @@ const AvatarRing = () => {
   const avatars = [
     { name: 'Alex', image: '/avatars/alex.jpg' },
     { name: 'Sia', image: '/avatars/sia.jpg' },
-    { name: 'Noah', image: '/avatars/noah.jpg' }
+    { name: 'Noah', image: '/avatars/noah.jpg' },
+    { name: 'Maya', image: '/avatars/maya.jpg' }
   ];
 
   const onAvatarSelect = (name, index) => {

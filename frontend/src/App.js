@@ -39,6 +39,7 @@ const SendIcon = () => (
 
 function App() {
   const [currentView, setCurrentView] = useState('chat'); // 'chat' or 'avatars'
+  const [showInauguration, setShowInauguration] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -511,31 +512,42 @@ function App() {
   const userMessages = messages.filter(m => m.role === 'user');
   const assistantMessages = messages.filter(m => m.role === 'assistant');
 
-  // Show Avatar Demo if selected
-  if (currentView === 'avatars') {
+  // Enable continuous mode function for inauguration
+  const enableContinuousModeFromInauguration = () => {
+    if (!continuousMode) {
+      setContinuousMode(true);
+      // Initialize TTS if not already done
+      if (!ttsInitializedRef.current) {
+        const utterance = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(utterance);
+        ttsInitializedRef.current = true;
+        console.log('✅ TTS initialized from inauguration');
+      }
+      // Start listening after a brief delay
+      setTimeout(() => {
+        if (recognitionRef.current && !isListening) {
+          try {
+            setIsListening(true);
+            setError(null);
+            recognitionRef.current.start();
+            console.log('✅ Continuous mode auto-enabled from inauguration');
+          } catch (err) {
+            setIsListening(false);
+            console.error('❌ Failed to start listening from inauguration:', err);
+          }
+        }
+      }, 1000);
+    }
+  };
+
+  // Show Inauguration Mode
+  if (showInauguration) {
     return (
-      <div>
-        <button 
-          onClick={() => setCurrentView('chat')}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            zIndex: 30,
-            padding: '10px 20px',
-            background: 'rgba(0, 255, 255, 0.2)',
-            border: '1px solid #00ffff',
-            borderRadius: '25px',
-            color: '#00ffff',
-            fontFamily: 'Inter, sans-serif',
-            cursor: 'pointer',
-            backdropFilter: 'blur(10px)'
-          }}
-        >
-          Back to Chat
-        </button>
-        <AvatarDemo />
-      </div>
+      <AvatarDemo 
+        onClose={() => setShowInauguration(false)}
+        onComplete={() => setShowInauguration(false)}
+        onEnableContinuousMode={enableContinuousModeFromInauguration}
+      />
     );
   }
 
@@ -610,14 +622,11 @@ function App() {
         
         <button 
           className="control-btn avatar-btn"
-          onClick={() => setCurrentView('avatars')}
-          title="Avatar Ring Demo"
-          style={{ background: 'linear-gradient(135deg, #ff6b6b, #4ecdc4)' }}
+          onClick={() => setShowInauguration(true)}
+          title="Start Inauguration"
+          style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
         >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
-            <circle cx="12" cy="8" r="5"/>
-            <path d="M20 21a8 8 0 1 0-16 0"/>
-          </svg>
+          🎉
         </button>
       </div>
 

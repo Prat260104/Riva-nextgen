@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import AvatarRing from './AvatarRing';
 import FaceRecognition from './FaceRecognition';
 import VoiceAssistant from './VoiceAssistant';
+import InaugurationMode from './InaugurationMode';
 import './AvatarRing.css';
 
-const AvatarDemo = () => {
+const AvatarDemo = ({ onClose, onComplete, onEnableContinuousMode }) => {
   const [selectedAvatar, setSelectedAvatar] = useState('Alex'); // Default to Alex
   const [audioLevel, setAudioLevel] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showInauguration, setShowInauguration] = useState(true); // Start with inauguration
 
   const handleFaceRecognized = (name, confidence) => {
     console.log('🎯 handleFaceRecognized called!');
@@ -17,7 +19,8 @@ const AvatarDemo = () => {
     const avatarMap = {
       'Prateek': 'Alex',
       'Vinayak': 'Noah',
-      'Shreya': 'Sia'
+      'Shreya': 'Sia',
+      'Maya': 'Maya'
     };
     
     const avatarName = avatarMap[name] || name;
@@ -37,17 +40,11 @@ const AvatarDemo = () => {
 
 
   return (
-    <div className="avatar-demo">
-      <FaceRecognition onRecognized={handleFaceRecognized} />
-      <AvatarRing audioLevel={audioLevel} isSpeaking={isSpeaking} />
-      <VoiceAssistant 
-        activeAvatar={selectedAvatar}
-        onAudioLevel={setAudioLevel}
-        onSpeaking={setIsSpeaking}
-      />
-      
-
-    </div>
+    <InaugurationMode 
+      onClose={onClose || (() => window.location.href = '/')}
+      onComplete={onComplete || (() => window.location.href = '/')}
+      onEnableContinuousMode={onEnableContinuousMode}
+    />
   );
 };
 
