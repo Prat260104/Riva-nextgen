@@ -22,8 +22,7 @@ const FaceRecognition = ({ onComplete }) => {
     "Manoj": "Dr. Manoj Goel, our Director",
     "Adesh": "Dr. Adesh Kumar Pandey, Director Academics",
     "Rajeev": "Dr. Rajeev, our respected faculty",
-    "Abhinav": "Dr. Abhinav juneja, our respected attendee",
-    "Vinayak": "Vinayak Rastogi, Technical Lead and Developer of RIVA"
+    "Abhinav": "Dr. Abhinav juneja, our respected sir",
   };
 
   useEffect(() => {

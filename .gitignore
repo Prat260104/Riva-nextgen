@@ -80,6 +80,5 @@ Face-Recognition-using-Facenet/env/
 dataset/Vinayak
 
 # Large video files (>50MB)
-*.mp4
 !frontend/public/intro.mp4
 !frontend/public/rotate.mp4
