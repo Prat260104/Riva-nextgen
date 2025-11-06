@@ -1,0 +1,234 @@
+/* ===== SHOWCASE CONTAINER ===== */
+.showcase-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  z-index: 150;
+}
+
+
+/* ===== PERSISTENT BACKGROUND VIDEO ===== */
+.background-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+
+/* ===== INTRO OVERLAY ===== */
+.intro-overlay {
+  z-index: 1000 !important;
+}
+
+
+/* ===== INTRO FADEOUT OVERLAY ===== */
+.intro-fadeout-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 1);
+  z-index: 1001;
+  animation: fadeToBlack 0.5s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes fadeToBlack {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+
+/* ===== WELCOME OVERLAY WITH TEXT ===== */
+/* ===== WELCOME OVERLAY WITH TEXT ===== */
+.welcome-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  background: transparent;  /* Changed from rgba(0, 0, 0, 0.4) to transparent */
+  overflow: hidden;
+}
+
+/* Welcome image - fades in, holds, then fades out */
+.welcome-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 499;
+  animation: welcomeFadeInHoldOut 3.8s ease-in-out forwards;
+}
+
+/* Animation: Fade in -> Hold -> Fade out */
+@keyframes welcomeFadeInHoldOut {
+  0% {
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+
+/* ===== CARD STAGE ===== */
+.card-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+
+/* ===== CONTROL BUTTONS ===== */
+.control-icon {
+  position: fixed;
+  bottom: 4rem;
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.35s ease, display 0.6s ease;
+  z-index: 200;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+}
+
+
+.control-icon:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+
+.control-icon:active {
+  transform: translateY(-2px);
+}
+
+
+.control-icon svg {
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+}
+
+
+.left-control {
+  left: 12.8rem;
+  top:35rem;
+}
+
+
+.right-control {
+  left: 17.5rem;
+  top:35rem;
+}
+
+
+.center-control {
+  left: 50%;
+  transform: translateX(-50%);
+  width: 75px;
+  height: 75px;
+}
+
+
+.center-control:hover {
+  transform: translateX(-50%) translateY(-6px);
+}
+
+
+.center-control:active {
+  transform: translateX(-50%) translateY(-2px);
+}
+
+
+/* ===== HIDE BUTTONS WHEN TEAM MODAL IS ACTIVE ===== */
+body[data-team-modal-active="true"] .control-icon {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .control-icon {
+    width: 60px;
+    height: 60px;
+    bottom: 2.5rem;
+  }
+
+  .left-control {
+    left: 1.5rem;
+  }
+
+  .right-control {
+    right: 1.5rem;
+  }
+
+  .center-control {
+    width: 65px;
+    height: 65px;
+  }
+}
+
+
+@media (max-width: 480px) {
+  .control-icon {
+    width: 55px;
+    height: 55px;
+    bottom: 2rem;
+  }
+
+  .left-control {
+    left: 1rem;
+  }
+
+  .right-control {
+    right: 1rem;
+  }
+
+  .center-control {
+    width: 60px;
+    height: 60px;
+  }
+}
