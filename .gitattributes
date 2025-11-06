@@ -1,0 +1,2 @@
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+Riva-2/Riva-main/frontend/public/*.mp4 filter=lfs diff=lfs merge=lfs -text
