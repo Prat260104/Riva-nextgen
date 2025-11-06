@@ -90,13 +90,12 @@ echo 1. Edit API Keys:
 echo    - Riva-2\Riva-main\backend\.env
 echo    - backend\.env
 echo.
-echo 2. Start Backend (Terminal 1):
-echo    cd Riva-2\Riva-main\backend
-echo    node server.js
+echo 2. Use START_RIVA.bat to launch both:
+echo    START_RIVA.bat
 echo.
-echo 3. Start Frontend (Terminal 2):
-echo    cd Riva-2\Riva-main\frontend
-echo    npm start
+echo    OR manually:
+echo    Terminal 1: cd Riva-2\Riva-main\backend && node server.js
+echo    Terminal 2: cd Riva-2\Riva-main\frontend && npm start
 echo.
 echo 4. Open Browser:
 echo    http://localhost:3000
